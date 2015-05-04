@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Cumulative Maumee River Loading</title>
+    <link href="examples.css" rel="stylesheet" type="text/css">
+    <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../../excanvas.min.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="jquery.flot.stack.js"></script>
+
+    <link rel="stylesheet" href="jquery-ui-1.11.4/jquery-ui.theme.css">
+    <script src="jquery-ui-1.11.4/jquery-ui.js"></script>
+
+    <script src="data.js"></script>
+    <script src="climatology.js"></script>
+
+    <script type="text/javascript">
+
+        function loadData() {
+
+            var tp = new Array();
+            var drp = new Array();
+            for (i = 0; i < dailyData.length; i++) {
+                var date = new Date(Date.parse(dailyData[i][0]));
+                tp[i] = [date,dailyData[i][1]];
+                drp[i] = [date,dailyData[i][2]];
+            }
+            return [["TP",tp],["DRP",drp]];
+        }
+
+        function loadPlotData(data, dataset, startDay) {
+
+            var stats = generateStats(data[dataset][1], 1, startDay, true);
+            var d1 = [];
+            var d2 = [];
+            var d3 = [];
+            var d4 = [];
+            var d5 = [];
+            for (i = 0; i < 365; i++) {
+
+                d1.push([i + 1, stats[0][i]]);
+                d2.push([i + 1, stats[1][i]]);
+                d3.push([i + 1, stats[2][i]]);
+                d4.push([i + 1, stats[3][i]]);
+                d5.push([i + 1, stats[4][i]]);
+            }
+            return [{data: d1, color: "white", fill: 0.0, lineWidth:1},
+                {label: "25%ile", data: d2, color: "rgba(224,224,224,0.5)",lineWidth:1},
+                {label: "mean", data: d3, color: "rgba(192,192,192,0.5)",lineWidth:3},
+                {label: "75%ile", data: d4, color: "rgba(192,192,192,0.5)", lineWidth:1},
+                {data: d5, color: "rgba(224,224,224,0.5)", lineWidth:1}];
+
+
+        }
+        $(function() {
+
+            $( "#datepicker" ).datepicker({
+                    dateFormat: "yy-mm-dd"
+            });
+
+            var data = loadData();
+            var plotData = loadPlotData(data,1,91);
+            var stack = 0,
+                    bars = true,
+                    lines = true,
+                    steps = false;
+
+            console.log("done generating")
+            function plotWithOptions() {
+                $.plot("#placeholder", plotData, {
+                    series: {
+                        stack: stack,
+                        lines: {
+                            show: lines,
+                            fill: true,
+                            steps: steps
+                        },
+                        bars: {
+                            show: bars,
+                            barWidth: 0.6
+                        }
+                    }
+                });
+            }
+
+            plotWithOptions();
+
+            $(".stackControls button").click(function (e) {
+                e.preventDefault();
+                stack = $(this).text() == "With stacking" ? true : null;
+                plotWithOptions();
+            });
+
+            $(".graphControls button").click(function (e) {
+                e.preventDefault();
+                bars = $(this).text().indexOf("Bars") != -1;
+                lines = $(this).text().indexOf("Lines") != -1;
+                steps = $(this).text().indexOf("steps") != -1;
+                plotWithOptions();
+            });
+
+//            $(".dateControl text").change(function(e)) {
+//                e.preventDefault();
+//                console.log("In Change");
+//            }
+            // Add the Flot version string to the footer
+
+            $("#footer").prepend("Flot " + $.plot.version + " &ndash; ");
+        });
+
+    </script>
+</head>
+<body>
+
+<div id="header">
+    <h2>Maumee River Cumulative Loading</h2>
+</div>
+
+<div id="content">
+
+    <div class="demo-container">
+        <div id="placeholder" class="demo-placeholder"></div>
+    </div>
+
+    <p>This chart summarizes the daily cumulative load delivered to Lake Erie by the Maumee River.
+        <br>
+        <br>
+    </p>
+
+    <p class="stackControls">
+        <button>With stacking</button>
+        <button>Without stacking</button>
+    </p>
+
+    <p class="graphControls">
+        <button>Bars</button>
+        <button>Lines</button>
+        <button>Lines with steps</button>
+    </p>
+
+    <p class="dateControl">
+        Date: <input type="text" id="datepicker">
+    </p>
+
+</div>
+
+<div id="footer">
+    Copyright &copy; 2007 - 2014 IOLA and Ole Laursen
+</div>
+
+</body>
+</html>
