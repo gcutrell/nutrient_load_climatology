@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <title></title>
 
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-    <script src="//code.jquery.com/jquery-1.10.2.js"></script>
-    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <link rel="StyleSheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" type="text/css">
     <script src="http://code.highcharts.com/highcharts.js"></script>
-    <script src="http://code.highcharts.com/modules/exporting.js"></script>
+
 
     <script src="data.js"></script>
     <script src="climatology.js"></script>
@@ -34,6 +33,11 @@
 
             var aYear = grabAYear(data[dataset][1], 1, startDay, 2015, true);
 
+            var years = [];
+            for (y = 2000; y < 2015; y++) {
+                years.push(grabAYear(data[dataset][1], 1, startDay, y, true))
+            }
+
             var stats = generateStats(data[dataset][1], 1, startDay, true);
             var d1 = [];
             var d2 = [];
@@ -41,6 +45,11 @@
             var d4 = [];
             var d5 = [];
             var d6 = [];
+            var d7 = [];
+            var dMany = new Array(15);
+            for (y = 2000; y < 2015; y++) {
+                dMany[y - 2000] = [];
+            }
             for (i = 0; i < 365; i++) {
 
                 date = Date.UTC(1970, 0, i + startDay);
@@ -52,184 +61,235 @@
                 if (i < aYear.length) {
                     d6.push([date, aYear[i]]);
                 }
+                d7.push([date,800.0]);
+                for (y = 2000; y < 2015; y++) {
+                    dMany[y - 2000].push([date, years[y - 2000][i]]);
+                }
             }
 
-            return [
-                {type: "area", name: "max", data: d1, linecolor: "#A0A0A0", color: '#F0F0F0'},
-                {type: "area", name: "75%ile", data: d2, color: '#D0D0D0'},
-                {type: "area", name: "mean", data: d3, color: '#D0D0D0'},
-                {type: "area", name: "25%ile", data: d4, color: '#F0F0F0'},
-                {type: "area", name: "min", data: d5, color: '#FFFFFF'},
-                {type: "line", name: "2007", data: d6, color: '#004400', linewidth: 2}
-            ];
+            var result = [];
+            result.push({type: "area", name: "max", data: d1, linecolor: "#808080", color: '#F0F0F0'});
+            result.push({type: "area", name: "75%ile", data: d2, color: '#D0D0D0'});
+            result.push({type: "area", name: "mean", data: d3, color: '#D0D0D0', lineColor: '#808080'});
+            result.push({type: "area", name: "25%ile", data: d4, color: '#F0F0F0'});
+            result.push({type: "area", name: "min", data: d5, color: '#FFFFFF'});
+            result.push({type: "line", name: "2015", data: d6, color: '#004400', lineWidth: 3});
+            result.push({
+                type: "line", name: "July 31 target", data: d7,
+                lineWidth: "1", visible: false, showInLegend: false, color: "#FF0000", dashStyle: "longdash"
+            });
+
+            for (y = 2000; y < 2015; y++) {
+                result.push({
+                    type: "line",
+                    name: y,
+                    data: dMany[y - 2000],
+                    color: '#444444',
+                    lineWidth: 1,
+                    visible: false,
+                    showInLegend: false
+                });
+            }
+
+            return result;
+            ;
 
 
         }
 
-
+        var chart = null;
+        var lastItem = "none";
         $(function () {
 
-            var data = loadData();
+                    var data = loadData();
 
-            var startDay = 59;
-            var startMonth = 2;
-            var monthTickPositions = [];
-            for (i = 0; i < 6; i++) {
-                monthTickPositions.push(Date.UTC(1970, startMonth + i, 0))
-            }
+                    var startDay = 59;
+                    var startMonth = 2;
+                    var monthTickPositions = [];
+                    for (i = 0; i < 6; i++) {
+                        monthTickPositions.push(Date.UTC(1970, startMonth + i, 0))
+                    }
+                    var plotData = loadPlotData(data, 0, startDay);
 
-            $("#display").selectmenu({
+                    chart = new Highcharts.Chart(
+                            {
+                                chart: {
+                                    type: 'area',
+                                    renderTo: 'container'
+                                },
+
+                                credits: {
+                                    enabled: false
+                                },
+
+                                title: {
+                                    text: 'Cumulative Total Phosphorus Load from Maumee River to Western Lake Erie Basin',
+                                },
+                                subtitle: {
+                                    text: '(March 1 to April 27, 2015)'
+                                },
+                                xAxis: {
+                                    min: Date.UTC(1970, startMonth, 0),
+                                    max: Date.UTC(1970, startMonth + 5, 0),
+                                    tickPositions: monthTickPositions,
+                                    gridLineWidth: 1,
+
+                                    labels: {
+                                        formatter: function () {
+                                            if (this.isFirst) return null;
+                                            var date = new Date(this.value);
+                                            return date.toLocaleString("en-us", {month: "short"})
+                                        },
+                                        x: -80
+                                    }
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: 'TP (metric tons)'
+                                    },
+                                    labels: {
+                                        formatter: function () {
+                                            return this.value;
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    shared: true
+                                },
+                                plotOptions: {
+                                    area: {
+                                        stacking: 'normal',
+                                        lineWidth: 1,
+                                        marker: {
+                                            lineWidth: 1,
+                                        }
+                                    }
+                                },
+                                series: plotData
+                            }
+                    );
+            $('#display').selectmenu({
                 change: function (event, data) {
 
-                    if (data.item.value == "Total Phosphorus") {
-                        plotData = loadPlotData(data, 0, startDay)
-                    } else if (data.item.value == "Dissolved Reactive Phosphorus") {
-                        plotData = loadPlotData(data, 1, startDay)
-                    }
-                    $('#container').highcharts.redraw();
-
                 }
-            })
-            ;
-
-            var plotData = loadPlotData(data, 0, startDay);
-
-            $('#container').highcharts({
-                chart: {
-                    type: 'area'
-                },
-
-                credits: {
-                    enabled: false
-                },
-
-                title: {
-                    text: 'Cumulative Total Phosphorus Load from Maumee River to Western Lake Erie Basin',
-                },
-                subtitle: {
-                    text: '(March 1 to April 20, 2015)'
-                },
-                xAxis: {
-                    min: Date.UTC(1970, startMonth, 0),
-                    max: Date.UTC(1970, startMonth + 5, 0),
-                    tickPositions: monthTickPositions,
-                    gridLineWidth: 1,
-
-                    labels: {
-                        formatter: function () {
-                            if (this.isFirst) return null;
-                            var date = new Date(this.value);
-                            return date.toLocaleString("en-us", {month: "short"})
-                        },
-                        x: -80
-                    }
-                },
-                yAxis: {
-                    title: {
-                        text: 'TP (metric tons)'
-                    },
-                    labels: {
-                        formatter: function () {
-                            return this.value;
-                        }
-                    }
-                },
-                tooltip: {
-                    shared: true
-                },
-                plotOptions: {
-                    area: {
-                        stacking: 'normal',
-                        lineColor: '#666666',
-                        lineWidth: 1,
-                        marker: {
-                            lineWidth: 1,
-                            lineColor: '#666666'
-                        }
-                    }
-                },
-                series: plotData
             });
-        })
-        ;
+
+                    $('#year').selectmenu({
+                                change: function (event, data) {
+                                    if (lastItem != "none") {
+                                        chart.series[lastItem - 1993].hide();
+                                    }
+                                    lastItem = data.item.value;
+                                    if (lastItem != "none") {
+                                        chart.series[lastItem - 1993].lineColor = '#802020';
+                                        chart.series[lastItem - 1993].show();
+                                    }
+                                }
+                            }
+                    )
+                    $('#target').change(function () {
+                        if (this.checked)
+                            chart.series[6].show()
+                        else
+                            chart.series[6].hide()
+                    })
+                }
+        )
+
+
     </script>
 
     <style>
+
         fieldset {
             border: 0;
+            margin-left: 50px;
         }
 
-        label {
-            display: block;
-            margin: 30px 0 0 0;
+        .ui-widget {
+            font-size: 75% !important;
         }
 
         select {
             width: 200px;
         }
-
-        .overflow {
-            height: 200px;
-        }
     </style>
 </head>
+<body>
+<h2>5/4/2015 DRAFT - Cumulative 2015 Maumee River Discharge and Nutrient Loads</h2>
 
-<h2>Cumulative 2015 Maumee River Discharge and Nutrient Loads</h2>
+<p>Data last updated 5/4/2015; next data update scheduled for 5/11/2015.</p>
 
-<p>Last updated 4/27/2015; next update scheduled for 5/4/2015.</p>
-
-<table>
+<table width="900">
     <tr>
-        <td>
-            <p>Flow (4/27/2015): <br>
-                Total Phosphorus (4/20/2015): 4,500 lb (7% above 2000-2014 average) <br>
-                Dissolved Reactive Phosphorus (4/20/2015): 1,234 lb (5% below 2000-2014 average)
+        <td width="600">
+            <p>Flow (5/4/2015): <br>
+                Total Phosphorus (4/27/2015): x,xxx metric tons (y% above 2000-2014 average) <br>
+                Dissolved Reactive Phosphorus (4/27/2015): z,zzz metric tons (a% below 2000-2014 average)
             </p>
         </td>
         <td>
-            <form action="#">
+            <fieldset>
+                <input type="checkbox" id="target">Show suggested target</input>
+                <br>
 
-                <fieldset>
-                    <label for="display">Display</label>
-                    <select name="display" id="display">
-                        <option selected="" selected
-                        ">Total Phosphorus</option>
-                        <option>Dissolved Reactive Phosphorus</option>
-                        <option>Flow</option>
-                    </select>
+                <input type="checkbox" id="forecast">Show forecast</input>
+                <br>
 
-                    <label for="Year">Year</label>
-                    <select name="year" id="year">
-                        <option selected="" selected
-                        ">none</option>
-                        <option>2000</option>
-                        <option>2001</option>
-                    </select>
-                </fieldset>
+                <select id="display" name="display">
+                    <option value="Total Phosphorus" selected="selected">Total Phosphorus</option>
+                    <option value="Dissolved Reactive Phosphorus">Dissolved Reactive Phosphorus</option>
+                </select>
+                <br>
 
-            </form>
+                <select id="year" name="year">
+                    <option selected="selected" value="none">none</option>
+                    <option value="2000">2000</option>
+                    <option value="2001">2001</option>
+                    <option value="2002">2002</option>
+                    <option value="2003">2003</option>
+                    <option value="2004">2004</option>
+                    <option value="2005">2005</option>
+                    <option value="2006">2006</option>
+                    <option>2007</option>
+                    <option>2008</option>
+                    <option>2009</option>
+                    <option>2010</option>
+                    <option>2011</option>
+                    <option>2012</option>
+                    <option>2013</option>
+                    <option>2014</option>
+                </select>
+            </fieldset>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <div id="container" style="width: 900px; height: 600px; margin: 0 auto"></div>
+
+            <p>The extent and severity of algal blooms in the Western Lake Erie Basin (WLEB) have been shown to be
+                correlated with the amount of nutrients (nutrient load) entering the WLEB from the Maumee River
+                Watershed through the Maumee River. Measurements of the concentration of nutrients in the Maumee River
+                are collected by Heidelberg University and combined with USGS measurements of Maumee River flow to
+                calculate daily nutrient loads. This web page’s tracking tool sums up nutrient loads day-to-day to show
+                the current year’s total nutrient load entering the WLEB through the Maumee River, and charts the
+                cumulative loads in the context of previous (2000-2014) years’ ranges.
+            </p>
+
+            <p>Heidelberg University retrieves water samples and performs laboratory analyses of the samples’ water
+                chemistry on a regular schedule. During the critical spring and summer seasons of 2015, Heidelberg plans
+                to publish analytical results and calculated daily loads on a weekly basis. The intensive schedule,
+                along with development and implementation of this web page in partnership with the Great Lakes Observing
+                System, is supported by the Great Lakes Restoration Initiative and the National Oceanic and Atmospheric
+                Agency’s Great Lakes Environmental Research Laboratory.
+
+            <p>
+                Much more information is available from the following links:
+            </p>
         </td>
     </tr>
 </table>
-<div id="container" style="width: 900px; height: 600px; margin: 0 auto"></div>
-
-<p>The extent and severity of algal blooms in the Western Lake Erie Basin (WLEB) have been shown to be correlated with
-    the amount of nutrients (nutrient load) entering the WLEB from the Maumee River Watershed through the Maumee River.
-    Measurements of the concentration of nutrients in the Maumee River are collected by Heidelberg University and
-    combined with USGS measurements of Maumee River flow to calculate daily nutrient loads. This web page’s tracking
-    tool sums up nutrient loads day-to-day to show the current year’s total nutrient load entering the WLEB through the
-    Maumee River, and charts the cumulative loads in the context of previous (2000-2014) years’ ranges.
-</p>
-
-<p>Heidelberg University retrieves water samples and performs laboratory analyses of the samples’ water chemistry on a
-    regular schedule. During the critical spring and summer seasons of 2015, Heidelberg plans to publish analytical
-    results and calculated daily loads on a weekly basis. The intensive schedule, along with development and
-    implementation of this web page in partnership with the Great Lakes Observing System, is supported by the Great
-    Lakes Restoration Initiative and the National Oceanic and Atmospheric Agency’s Great Lakes Environmental Research
-    Laboratory.
-
-<p>
-    Much more information is available from the following links:
-</p>
 </body>
+
+
 </html>
