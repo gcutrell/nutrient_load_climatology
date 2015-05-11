@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <!-- updated 5/7/15 12:15pm -->
+
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Maumee Trib Tool Test</title>
+
+    <link rel="StyleSheet" href="tribtool.css" type="text/css">
+
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <link rel="StyleSheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" type="text/css">
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+
+
+    <script src="data.js"></script>
+    <script src="climatology.js"></script>
+
+
+    <script>
+
+        function loadData() {
+
+            var tp = new Array();
+            var drp = new Array();
+
+            for (i = 0; i < dailyData.length; i++) {
+                var date = new Date(Date.parse(dailyData[i][0]));
+                tp[i] = [date, dailyData[i][1]];
+                drp[i] = [date, dailyData[i][2]];
+            }
+            return [["TP", tp], ["DRP", drp]];
+        }
+
+        function loadPlotData(data, dataset, startDay) {
+
+            var aYear = grabAYear(data[dataset][1], 1, startDay, 2015, true);
+
+            var years = [];
+            for (y = 2000; y < 2015; y++) {
+                years.push(grabAYear(data[dataset][1], 1, startDay, y, true))
+            }
+
+            var stats = generateStats(data[dataset][1], 1, startDay, true);
+            var d1 = [];
+            var d2 = [];
+            var d3 = [];
+            var d4 = [];
+            var d5 = [];
+            var d6 = [];
+            var d7 = [];
+            var dMany = new Array(15);
+            for (y = 2000; y < 2015; y++) {
+                dMany[y - 2000] = [];
+            }
+            for (i = 0; i < 365; i++) {
+
+                date = Date.UTC(1970, 0, i + startDay);
+                d1.push([date, stats[4][i] - stats[3][i]]);
+                d2.push([date, stats[3][i] - stats[2][i]]);
+                d3.push([date, stats[2][i] - stats[1][i]]);
+                d4.push([date, stats[1][i] - stats[0][i]]);
+                d5.push([date, stats[0][i]]);
+                if (i < aYear.length) {
+                    d6.push([date, aYear[i]]);
+                }
+                d7.push([date, 800.0]);
+                for (y = 2000; y < 2015; y++) {
+                    dMany[y - 2000].push([date, years[y - 2000][i]]);
+                }
+            }
+
+            var result = [];
+            result.push({type: "area", name: "max", data: d1, linecolor: "#808080", color: '#F0F0F0'});
+            result.push({type: "area", name: "75%ile", data: d2, color: '#D0D0D0'});
+            result.push({type: "area", name: "mean", data: d3, color: '#D0D0D0', lineColor: '#808080'});
+            result.push({type: "area", name: "25%ile", data: d4, color: '#F0F0F0'});
+            result.push({type: "area", name: "min", data: d5, color: '#FFFFFF'});
+            result.push({type: "line", name: "2015", data: d6, color: '#004400', lineWidth: 3});
+            result.push({
+                type: "line", name: "July 31 target", data: d7,
+                lineWidth: "1", visible: false, showInLegend: false, color: "#FF0000", dashStyle: "longdash"
+            });
+
+            for (y = 2000; y < 2015; y++) {
+                result.push({
+                    type: "line",
+                    name: y,
+                    data: dMany[y - 2000],
+                    color: '#444444',
+                    lineWidth: 1,
+                    visible: false,
+                    showInLegend: false
+                });
+            }
+
+            return result;
+            ;
+
+
+        }
+
+        var chart = null;
+        var lastItem = "none";
+        $(function () {
+
+                    var data = loadData();
+
+                    var startDay = 59;
+                    var startMonth = 2;
+                    var monthTickPositions = [];
+                    for (i = 0; i < 6; i++) {
+                        monthTickPositions.push(Date.UTC(1970, startMonth + i, 0))
+                    }
+                    var plotData = loadPlotData(data, 0, startDay);
+
+                    chart = new Highcharts.Chart(
+                            {
+                                chart: {
+                                    type: 'area',
+                                    renderTo: 'container'
+                                },
+
+                                credits: {
+                                    enabled: false
+                                },
+
+                                subtitle: {
+                                    text: 'Cumulative Load from Maumee River to Western Lake Erie Basin',
+                                },
+                                title: {
+                                    text: ''
+                                },
+//                                subtitle: {
+//                                    text: '(March 1 to April 27, 2015)'
+//                                },
+                                xAxis: {
+                                    min: Date.UTC(1970, startMonth, 0),
+                                    max: Date.UTC(1970, startMonth + 5, 0),
+                                    tickPositions: monthTickPositions,
+                                    gridLineWidth: 1,
+
+                                    labels: {
+                                        formatter: function () {
+                                            if (this.isFirst) return null;
+                                            var date = new Date(this.value);
+                                            return date.toLocaleString("en-us", {month: "short"})
+                                        },
+                                        x: -80
+                                    }
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: 'Total Phosphorus (metric tons)'
+                                    },
+                                    labels: {
+                                        formatter: function () {
+                                            return this.value;
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    shared: true
+                                },
+                                plotOptions: {
+                                    area: {
+                                        stacking: 'normal',
+                                        lineWidth: 1,
+                                        marker: {
+                                            lineWidth: 1,
+                                        }
+                                    }
+                                },
+                                series: plotData
+                            }
+                    );
+                    $('#display').selectmenu({
+                        change: function (event, data) {
+
+                        }
+                    });
+
+                    $('#year').selectmenu({
+                                change: function (event, data) {
+                                    if (lastItem != "none") {
+                                        chart.series[lastItem - 1993].hide();
+                                    }
+                                    lastItem = data.item.value;
+                                    if (lastItem != "none") {
+                                        chart.series[lastItem - 1993].lineColor = '#802020';
+                                        chart.series[lastItem - 1993].show();
+                                    }
+                                }
+                            }
+                    )
+                    $('#target').change(function () {
+                        if (this.checked)
+                            chart.series[6].show()
+                        else
+                            chart.series[6].hide()
+                    })
+                }
+        )
+
+
+    </script>
+
+    <style>
+
+        fieldset {
+            border: 0;
+            margin-left: 50px;
+        }
+
+        .ui-widget {
+            font-size: 75% !important;
+        }
+
+        select {
+            width: 200px;
+        }
+
+        body, td, th {
+            font-family: Candara, Calibri, Segoe UI;
+        }
+    </style>
+
+</head>
+<body id="pid-home"
+      class="front not-logged-in page-node node-type-page no-sidebars full-node layout-main sidebars-split font-size-12 grid-type-960 grid-width-16">
+<div id="page" class="page">
+    <div id="page-inner" class="page-inner">
+        <!-- header-top row: width = grid_width -->
+        <div id="header-top-wrapper" class="header-top-wrapper full-width">
+            <div id="header-top" class="header-top row grid16-16">
+                <div id="header-top-inner" class="header-top-inner inner clearfix">
+
+                    <div class="inner clearfix">
+                        <div class="content clearfix">
+
+                        </div>
+                    </div>
+                    <!-- /block-inner -->
+                </div>
+                <!-- /block -->
+
+                <div id="logo">
+                    <a href="/" title="Home"><img src="logo.png" alt="Home"/></a>
+                </div>
+                <div id="site-name-wrapper" class="clearfix">
+                    <div id="site-name"><a href="/" title="Home">Great Lakes Observing System </a></div>
+                    <div class="tool-title"><br/><br/>Maumee River Load Tracker <font size=-1><i>(DRAFT
+                        5/7/2015)</i></font></div>
+                </div>
+                <!-- /site-name-wrapper -->
+            </div>
+            <!-- /header-site-info-inner -->
+        </div>
+        <!-- /header-site-info -->
+        </br></br></br>
+
+        <div id="page-content" class="page-content">
+
+
+            <table width="900">
+                <tr>
+                    <td width="600">
+                        <p><b>Cumulative Loads</b> March 1 to April 27, 2015:<br>
+                            <table><tr><td>&nbsp;&nbsp;Total Phosphorus: <td>&nbsp;&nbsp;590.5 metric tons <td>&nbsp;&nbsp;(5% below 2000-2014 average) <br>
+                            <tr><td>&nbsp;&nbsp;Dissolved Reactive Phosphorus: <td>&nbsp;&nbsp;114.0 metric tons<td>&nbsp;&nbsp;(7% above 2000-2014 average)
+                            </table>
+                            <br>
+                            <i>Data last updated May 4; next update planned for May 11.</i>
+                        </p>
+                    </td>
+                    <td>
+                        <fieldset>
+                            <input type="checkbox" id="target">Show suggested target</input>
+                            <br>
+
+                            <input type="checkbox" id="forecast">Show forecast</input>
+                            <br>
+
+                            <select id="display" name="display">
+                                <option value="Total Phosphorus" selected="selected">Total Phosphorus</option>
+                                <option value="Dissolved Reactive Phosphorus">Dissolved Reactive Phosphorus</option>
+                            </select>
+                            <br>
+
+                            <select id="year" name="year">
+                                <option selected="selected" value="none">none</option>
+                                <option value="2000">2000</option>
+                                <option value="2001">2001</option>
+                                <option value="2002">2002</option>
+                                <option value="2003">2003</option>
+                                <option value="2004">2004</option>
+                                <option value="2005">2005</option>
+                                <option value="2006">2006</option>
+                                <option>2007</option>
+                                <option>2008</option>
+                                <option>2009</option>
+                                <option>2010</option>
+                                <option>2011</option>
+                                <option>2012</option>
+                                <option>2013</option>
+                                <option>2014</option>
+                            </select>
+                        </fieldset>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <div id="container" style="width: 900px; height: 600px; margin: 0 auto"></div>
+
+                        <p>The extent and severity of algal blooms in the Western Lake Erie Basin (WLEB) have been shown
+                            to be
+                            correlated with the amount of nutrients (nutrient load) entering the WLEB from the Maumee
+                            River
+                            Watershed through the Maumee River. Measurements of the concentration of nutrients in the
+                            Maumee River
+                            are collected by Heidelberg University and combined with USGS measurements of Maumee River
+                            flow to
+                            calculate daily nutrient loads. This web page’s tracking tool sums up nutrient loads
+                            day-to-day to show
+                            the current year’s total nutrient load entering the WLEB through the Maumee River, and
+                            charts the
+                            cumulative loads in the context of previous (2000-2014) years’ ranges.
+                        </p>
+
+                        <p>Heidelberg University retrieves water samples and performs laboratory analyses of the
+                            samples’ water
+                            chemistry on a regular schedule. During the critical spring and summer seasons of 2015,
+                            Heidelberg plans
+                            to publish analytical results and calculated daily loads on a weekly basis. The intensive
+                            schedule,
+                            along with development and implementation of this web page in partnership with the Great
+                            Lakes Observing
+                            System, is supported by the Great Lakes Restoration Initiative and the National Oceanic and
+                            Atmospheric
+                            Agency’s Great Lakes Environmental Research Laboratory.
+
+                        <p>
+                            Much more information is available from the following links:
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- footer row: width = grid_width -->
+    <div id="footer-wrapper" class="footer-wrapper full-width">
+        <div id="footer" class="footer row grid16-16">
+            <div id="footer-inner" class="footer-inner inner clearfix">
+
+                <div id="block-block-1" class="block block-block odd first grid16-9">
+                    <div class="inner clearfix">
+                        <div class="content clearfix">
+                            <table>
+                                <tr>
+                                    <td width="615">
+                                        <p>GLOS is a Regional Association of the <a href="http://www.ioos.noaa.gov/"
+                                                                                    target="_blank">Integrated Ocean
+                                            Observing System (IOOS)</a></p>
+
+                                        <p>Regional Coastal Observing Systems: <a href="http://www.aoos.org/"
+                                                                                  target="_blank">Alaska</a> • <a
+                                                href="http://cara.uprm.edu/" target="_blank">Caribbean</a> • <a
+                                                href="http://www.cencoos.org/" target="_blank">Central &amp; Northern
+                                            California</a><br/>
+                                            <a href="http://glos.us" target="_blank">Great Lakes</a> • <a
+                                                    href="http://gcoos.org" target="_blank">Gulf of Mexico</a> • <a
+                                                    href="http://www.soest.hawaii.edu/pacioos/" target="_blank">Pacific
+                                                Islands</a> • <a href="http://maracoos.org/" target="_blank">Mid-Atlantic</a>
+                                            • <a href="http://www.neracoos.org/"
+                                                 target="_blank">Northeast-Atlantic</a><br/>
+                                            <a href="http://www.nanoos.org/" target="_blank">Pacific Northwest</a> • <a
+                                                    href="http://www.sccoos.org/" target="_blank">Southern
+                                                California</a> • <a href="http://secoora.org/" target="_blank">Southeast-Atlantic</a><br/>
+                                            <a href="http://www.ioosassociation.org/">Integrated Ocean Observing System
+                                                Association</a></p>
+
+                                        <p>National Observing System Partners: <a href="http://www.act-us.info/"
+                                                                                  target="_blank">Alliance for Coastal
+                                            Technologies (ACT)</a><br/>
+                                            <a href="http://www.sura.org/home/" target="_blank">Southeastern
+                                                Universities Research Association (SURA)</a></p>
+                                    </td>
+                                    <td width="813">
+                                        <div class="footerbox">
+                                            <p>
+                                                <strong>Disclaimer:</strong>
+                                                All products published on this website are prototype products and are
+                                                not intended to be used for navigational or operational purposes.
+                                                <a href="http://glos.us/legal/">View full disclaimer.</a>
+                                            </p>
+
+                                            <div style="margin-top:5px;padding-bottom:15px; border:none; float:left; padding-right:10px;">
+                                                <a href="mailto:dmac@glos.us?subject=Data%20Portal%20Feedback">
+                                                    <img src="feedback.png" alt="Send feedback" width="100" height="26"
+                                                         style="border:none">
+                                                </a>
+                                            </div>
+                                            <p class="glosinfo">
+                                                © Great Lakes Observing System
+                                                <br>
+                                                229 Nickels Arcade
+                                                <br>
+                                                Ann Arbor, MI 48104
+                                                <br>
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- /block-inner -->
+                </div>
+                <!-- /block -->
+
+                <div id="block-block-4" class="block block-block even  grid16-4 fusion-right social">
+                    <div class="inner clearfix">
+                        <div class="content clearfix">
+
+                        </div>
+                    </div>
+                    <!-- /block-inner -->
+                </div>
+                <!-- /block -->
+</body>
+
+
+</html>
