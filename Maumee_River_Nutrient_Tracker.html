@@ -24,8 +24,8 @@
 
         function loadData() {
 
-            var tp = [];
-            var drp = [];
+            var tp = new Array();
+            var drp = new Array();
 
             for (i = 0; i < dailyData.length; i++) {
                 var date = new Date(Date.parse(dailyData[i][0]));
@@ -98,6 +98,7 @@
             }
 
             return result;
+
         }
 
         var chart = null;
@@ -237,6 +238,7 @@
                                 }
                             }
                     );
+
                     $('#target').change(function () {
                         if (this.checked) {
                             chart.series[6].show();
@@ -274,7 +276,7 @@
     </style>
 
 </head>
-< id="pid-home"
+<body id="pid-home"
       class="front not-logged-in page-node node-type-page no-sidebars full-node layout-main sidebars-split font-size-12 grid-type-960 grid-width-16">
 <div id="page" class="page">
     <div id="page-inner" class="page-inner">
@@ -486,8 +488,8 @@
                 <!-- /block -->
             </div>
         </div>
+        </div>
     </div>
-</div>
 
 </body>
 
