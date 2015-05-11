@@ -24,12 +24,12 @@
 
         function loadData() {
 
-            var tp = new Array();
-            var drp = new Array();
+            var tp = [];
+            var drp = [];
 
             for (i = 0; i < dailyData.length; i++) {
                 var date = new Date(Date.parse(dailyData[i][0]));
-                tp[i] = [date, dailyData[i][1]];
+                tp[i] = [date, Math.round(10000 * dailyData[i][1]) / 10000];
                 drp[i] = [date, dailyData[i][2]];
             }
             return [["TP", tp], ["DRP", drp]];
@@ -67,7 +67,7 @@
                 if (i < aYear.length) {
                     d6.push([date, aYear[i]]);
                 }
-                d7.push([date, 800.0]);
+                d7.push([date, 860.0]);
                 for (y = 2000; y < 2015; y++) {
                     dMany[y - 2000].push([date, years[y - 2000][i]]);
                 }
@@ -98,22 +98,22 @@
             }
 
             return result;
-            ;
-
-
         }
 
         var chart = null;
         var lastItem = "none";
+        var offsetForTarget = 0;
+        var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
         $(function () {
 
                     var data = loadData();
 
-                    var startDay = 59;
+                    var startDay = 60;
                     var startMonth = 2;
                     var monthTickPositions = [];
                     for (i = 0; i < 6; i++) {
-                        monthTickPositions.push(Date.UTC(1970, startMonth + i, 0))
+                        monthTickPositions.push(Date.UTC(1970, startMonth + i, 1))
                     }
                     var plotData = loadPlotData(data, 0, startDay);
 
@@ -129,7 +129,7 @@
                                 },
 
                                 subtitle: {
-                                    text: 'Cumulative Load from Maumee River to Western Lake Erie Basin',
+                                    text: 'Cumulative Load from Maumee River to Western Lake Erie Basin'
                                 },
                                 title: {
                                     text: ''
@@ -138,7 +138,7 @@
 //                                    text: '(March 1 to April 27, 2015)'
 //                                },
                                 xAxis: {
-                                    min: Date.UTC(1970, startMonth, 0),
+                                    min: Date.UTC(1970, startMonth, 1),
                                     max: Date.UTC(1970, startMonth + 5, 0),
                                     tickPositions: monthTickPositions,
                                     gridLineWidth: 1,
@@ -163,6 +163,43 @@
                                     }
                                 },
                                 tooltip: {
+                                    useHTML: true,
+                                    formatter: function () {
+                                        var date = new Date(this.x);
+                                        var s = '<b>' + months[date.getMonth()] + ' ' + date.getDate() + '</b>';
+
+                                        s = s + "<br><br><table>";
+                                        var y = this.points[4].y;
+                                        s = s + "<tr><td>Minimum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[3].y;
+                                        s = s + "<tr><td>25th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[2].y;
+                                        s = s + "<tr><td>Average: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[1].y;
+                                        s = s + "<tr><td>75th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[0].y;
+                                        s = s + "<tr><td>Maximum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+
+                                        if (lastItem == "none") {
+                                            if (this.points.length > 5 + offsetForTarget)
+                                                s = s + "<tr><td><b>Current year: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                        } else {
+                                            if (this.points.length > 6 + offsetForTarget) {
+                                                s = s + "<tr><td><b>Current year: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                            } else {
+                                                s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                            }
+                                        }
+                                        if (offsetForTarget > 0) {
+                                            s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+                                        }
+
+                                        s = s + "</table>";
+                                        return s;
+                                    },
+
+
                                     shared: true
                                 },
                                 plotOptions: {
@@ -170,7 +207,7 @@
                                         stacking: 'normal',
                                         lineWidth: 1,
                                         marker: {
-                                            lineWidth: 1,
+                                            lineWidth: 1
                                         }
                                     }
                                 },
@@ -187,20 +224,28 @@
                                 change: function (event, data) {
                                     if (lastItem != "none") {
                                         chart.series[lastItem - 1993].hide();
+                                        chart.series[lastItem - 1993].showInLegend = false;
                                     }
                                     lastItem = data.item.value;
                                     if (lastItem != "none") {
                                         chart.series[lastItem - 1993].lineColor = '#802020';
+                                        chart.series[lastItem - 1993].showInLegend = true;
                                         chart.series[lastItem - 1993].show();
                                     }
+                                    chart.isDirtyBox = true;
+                                    chart.redraw();
                                 }
                             }
-                    )
+                    );
                     $('#target').change(function () {
-                        if (this.checked)
-                            chart.series[6].show()
-                        else
-                            chart.series[6].hide()
+                        if (this.checked) {
+                            chart.series[6].show();
+                            offsetForTarget = 1;
+                        }
+                        else {
+                            chart.series[6].hide();
+                            offsetForTarget = 0;
+                        }
                     })
                 }
         )
@@ -229,7 +274,7 @@
     </style>
 
 </head>
-<body id="pid-home"
+< id="pid-home"
       class="front not-logged-in page-node node-type-page no-sidebars full-node layout-main sidebars-split font-size-12 grid-type-960 grid-width-16">
 <div id="page" class="page">
     <div id="page-inner" class="page-inner">
@@ -252,8 +297,8 @@
                 </div>
                 <div id="site-name-wrapper" class="clearfix">
                     <div id="site-name"><a href="/" title="Home">Great Lakes Observing System </a></div>
-                    <div class="tool-title"><br/><br/>Maumee River Load Tracker <font size=-1><i>(DRAFT
-                        5/7/2015)</i></font></div>
+                    <div class="tool-title"><br/><br/>Maumee River Nutrient Tracker <font size=-1><i>(5/11/2015
+                        DRAFT)</i></font></div>
                 </div>
                 <!-- /site-name-wrapper -->
             </div>
@@ -269,11 +314,18 @@
                 <tr>
                     <td width="600">
                         <p><b>Cumulative Loads</b> March 1 to April 27, 2015:<br>
-                            <table><tr><td>&nbsp;&nbsp;Total Phosphorus: <td>&nbsp;&nbsp;590.5 metric tons <td>&nbsp;&nbsp;(5% below 2000-2014 average) <br>
-                            <tr><td>&nbsp;&nbsp;Dissolved Reactive Phosphorus: <td>&nbsp;&nbsp;114.0 metric tons<td>&nbsp;&nbsp;(7% above 2000-2014 average)
-                            </table>
-                            <br>
-                            <i>Data last updated May 4; next update planned for May 11.</i>
+                        <table>
+                            <tr>
+                                <td>&nbsp;&nbsp;Total Phosphorus:
+                                <td>&nbsp;&nbsp;590.5 metric tons
+                                <td>&nbsp;&nbsp;(5% below 2000-2014 average) <br>
+                            <tr>
+                                <td>&nbsp;&nbsp;Dissolved Reactive Phosphorus:
+                                <td>&nbsp;&nbsp;114.0 metric tons
+                                <td>&nbsp;&nbsp;(7% above 2000-2014 average)
+                        </table>
+                        <br>
+                        <i>Data last updated May 4; next update planned for May 11.</i>
                         </p>
                     </td>
                     <td>
@@ -432,6 +484,11 @@
                     <!-- /block-inner -->
                 </div>
                 <!-- /block -->
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 
 
