@@ -45,6 +45,7 @@
             }
 
             var stats = generateStats(data[dataset][1], 1, startDay, true);
+            var stats2 = generateStats(data[dataset][1], 1, startDay, false);
             var d1 = [];
             var d2 = [];
             var d3 = [];
@@ -52,6 +53,11 @@
             var d5 = [];
             var d6 = [];
             var d7 = [];
+            var f1 = [];
+            var f2 = [];
+            var f3 = [];
+            var f4 = [];
+            var f5 = [];
             var dMany = new Array(15);
             for (y = 2000; y < 2015; y++) {
                 dMany[y - 2000] = [];
@@ -66,6 +72,20 @@
                 d5.push([date, stats[0][i]]);
                 if (i < aYear.length) {
                     d6.push([date, aYear[i]]);
+                    if (i == aYear.length - 1) {
+                        f1.push([date,aYear[i]]);
+                        f2.push([date,aYear[i]]);
+                        f3.push([date,aYear[i]]);
+                        f4.push([date,aYear[i]]);
+                        f5.push([date,aYear[i]]);
+                    }
+                }
+                else  {
+                    f1.push([date,f1[f1.length-1][1]+stats2[4][i]]);
+                    f2.push([date,f2[f2.length-1][1]+stats2[3][i]]);
+                    f3.push([date,f3[f3.length-1][1]+stats2[2][i]]);
+                    f4.push([date,f4[f4.length-1][1]+stats2[1][i]]);
+                    f5.push([date,f5[f5.length-1][1]+stats2[0][i]]);
                 }
                 d7.push([date, 860.0]);
                 for (y = 2000; y < 2015; y++) {
@@ -96,6 +116,9 @@
                     showInLegend: false
                 });
             }
+           result.push({type: "line", name: "forecast", showInLegend: false, data: f3, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
+            result.push({type: "line", name: "forecast", showInLegend: false, data: f1, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
+            result.push({type: "line", name: "forecast", showInLegend: false, data: f5, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
 
             return result;
 
@@ -105,18 +128,19 @@
         var lastItem = "none";
         var offsetForTarget = 0;
         var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
+        var rawData;
+        var startDay = 60;
+        var startMonth = 2;
         $(function () {
 
-                    var data = loadData();
+                    rawData = loadData();
+                    var plotData = loadPlotData(rawData, 0, startDay);
 
-                    var startDay = 60;
-                    var startMonth = 2;
+
                     var monthTickPositions = [];
                     for (i = 0; i < 6; i++) {
                         monthTickPositions.push(Date.UTC(1970, startMonth + i, 1))
                     }
-                    var plotData = loadPlotData(data, 0, startDay);
 
                     chart = new Highcharts.Chart(
                             {
@@ -140,7 +164,7 @@
 //                                },
                                 xAxis: {
                                     min: Date.UTC(1970, startMonth, 1),
-                                    max: Date.UTC(1970, startMonth + 5, 0),
+                                    max: Date.UTC(1970, startMonth + 5, 1),
                                     tickPositions: monthTickPositions,
                                     gridLineWidth: 1,
 
@@ -215,8 +239,19 @@
                                 series: plotData
                             }
                     );
+                    plotData = loadPlotData(rawData, 1, startDay);
+                    var chart2 = new Highcharts.Chart(Highcharts.merge(chart.options, {
+                        chart: {
+                            series: plotData,
+                            visible: false
+                        }
+                    }))
+
                     $('#display').selectmenu({
                         change: function (event, data) {
+                            alert(data.item.value)
+                            chart2.visible = true;
+                            chart.visible = false;
 
                         }
                     });
@@ -315,19 +350,19 @@
             <table width="900">
                 <tr>
                     <td width="600">
-                        <p><b>Cumulative Loads</b> March 1 to April 27, 2015:<br>
+                        <p><b>Cumulative Loads</b> March 1 to May 18, 2015:<br>
                         <table>
                             <tr>
                                 <td>&nbsp;&nbsp;Total Phosphorus:
-                                <td>&nbsp;&nbsp;590.5 metric tons
-                                <td>&nbsp;&nbsp;(5% below 2000-2014 average) <br>
+                                <td>&nbsp;&nbsp;616.4 metric tons
+                                <td>&nbsp;&nbsp;(21.5% below 2000-2014 average) <br>
                             <tr>
                                 <td>&nbsp;&nbsp;Dissolved Reactive Phosphorus:
-                                <td>&nbsp;&nbsp;114.0 metric tons
-                                <td>&nbsp;&nbsp;(7% above 2000-2014 average)
+                                <td>&nbsp;&nbsp;126.3 metric tons
+                                <td>&nbsp;&nbsp;(18.6% below 2000-2014 average)
                         </table>
                         <br>
-                        <i>Data last updated May 4; next update planned for May 11.</i>
+                        <i>Data last updated May 26; next update planned for June 1.</i>
                         </p>
                     </td>
                     <td>
@@ -488,8 +523,8 @@
                 <!-- /block -->
             </div>
         </div>
-        </div>
     </div>
+</div>
 
 </body>
 
