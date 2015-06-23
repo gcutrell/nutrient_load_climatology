@@ -116,16 +116,41 @@
                     showInLegend: false
                 });
             }
-           result.push({type: "line", name: "forecast", showInLegend: false, data: f3, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
-            result.push({type: "line", name: "forecast", showInLegend: false, data: f1, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
-            result.push({type: "line", name: "forecast", showInLegend: false, data: f5, color: '#444400', lineWidth: 1, dashStyle: "longdash"});
+            result.push({
+                type: "line",
+                name: "forecast",
+                showInLegend: false,
+                data: f1,
+                color: '#888888',
+                lineWidth: 1,
+                dashStyle: "LongDash"
+            });
+            result.push({
+                type: "line",
+                name: "forecast",
+                showInLegend: false,
+                data: f3,
+                color: '#444400',
+                lineWidth: 3,
+                dashStyle: "ShortDot"
+            });
+            result.push({
+                type: "line",
+                name: "forecast",
+                showInLegend: false,
+                data: f5,
+                color: '#888888',
+                lineWidth: 1,
+                dashStyle: "LongDash"
+            });
 
             return result;
 
         }
 
         var chart = null;
-        var lastItem = "none";
+        var lastYear = "none";
+        var lastParameter = "Total Phosphorus";
         var offsetForTarget = 0;
         var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         var rawData;
@@ -205,7 +230,7 @@
                                         y += this.points[0].y;
                                         s = s + "<tr><td>Maximum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
 
-                                        if (lastItem == "none") {
+                                        if (lastYear == "none") {
                                             if (this.points.length > 5 + offsetForTarget)
                                                 s = s + "<tr><td><b>Current year: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
                                         } else {
@@ -239,40 +264,15 @@
                                 series: plotData
                             }
                     );
-                    plotData = loadPlotData(rawData, 1, startDay);
-                    var chart2 = new Highcharts.Chart(Highcharts.merge(chart.options, {
-                        chart: {
-                            series: plotData,
-                            visible: false
-                        }
-                    }))
+                    //plotData = loadPlotData(rawData, 1, startDay);
+//                    var chart2 = new Highcharts.Chart(Highcharts.merge(chart.options, {
+//                        chart: {
+//                            series: plotData,
+//                            visible: false
+//                        }
 
-                    $('#display').selectmenu({
-                        change: function (event, data) {
-                            alert(data.item.value)
-                            chart2.visible = true;
-                            chart.visible = false;
 
-                        }
-                    });
-
-                    $('#year').selectmenu({
-                                change: function (event, data) {
-                                    if (lastItem != "none") {
-                                        chart.series[lastItem - 1993].hide();
-                                        chart.series[lastItem - 1993].showInLegend = false;
-                                    }
-                                    lastItem = data.item.value;
-                                    if (lastItem != "none") {
-                                        chart.series[lastItem - 1993].lineColor = '#802020';
-                                        chart.series[lastItem - 1993].showInLegend = true;
-                                        chart.series[lastItem - 1993].show();
-                                    }
-                                    chart.isDirtyBox = true;
-                                    chart.redraw();
-                                }
-                            }
-                    );
+                    // Handle toggle of forecast
 
                     $('#target').change(function () {
                         if (this.checked) {
@@ -284,6 +284,53 @@
                             offsetForTarget = 0;
                         }
                     })
+
+                    // Handle toggle of forecast
+
+                    $('#forecast').change(function () {
+                        if (this.checked) {
+                            chart.series[23].show();
+                            chart.series[24].show();
+                            chart.series[22].show();
+                        }
+                        else {
+                            chart.series[23].hide();
+                            chart.series[24].hide();
+                            chart.series[22].hide();
+                        }
+                    })
+
+                    // Handle switch between parameters
+
+                    $('#display').selectmenu({
+                        change: function (event, data) {
+                            //chart2.visible = true;
+                            chart.visible = false;
+                            alert(data.item.value)
+
+                        }
+                    });
+
+                    // Handle switch of single year being displayed
+
+                    $('#year').selectmenu({
+                                change: function (event, data) {
+                                    if (lastYear != "none") {
+                                        chart.series[lastYear - 1993].hide();
+                                        chart.series[lastYear - 1993].showInLegend = false;
+                                    }
+                                    lastYear = data.item.value;
+                                    if (lastYear != "none") {
+                                        chart.series[lastYear - 1993].lineColor = '#802020';
+                                        chart.series[lastYear - 1993].showInLegend = true;
+                                        chart.series[lastYear - 1993].show();
+                                    }
+                                    chart.isDirtyBox = true;
+                                    chart.redraw();
+                                }
+                            }
+                    );
+
                 }
         )
 
@@ -367,7 +414,7 @@
                     </td>
                     <td>
                         <fieldset>
-                            <input type="checkbox" id="target">Show suggested target</input>
+                            <input type="checkbox" id="target">Show</input>
                             <br>
 
                             <input type="checkbox" id="forecast">Show forecast</input>
@@ -402,7 +449,8 @@
                 </tr>
                 <tr>
                     <td colspan="2">
-                        <div id="container" style="width: 900px; height: 600px; margin: 0 auto"></div>
+                        <div id="container" style="display: block; width: 900px; height: 600px; margin: 0 auto"></div>
+                        <div id="container2" style="display: none; width: 900px; height: 600px; margin: 0 auto"></div>
 
                         <p>The extent and severity of algal blooms in the Western Lake Erie Basin (WLEB) have been shown
                             to be
@@ -437,6 +485,10 @@
                     </td>
                 </tr>
             </table>
+            <a href="http://lakeerie.ohio.gov/Portals/0/Reports/Task_Force_Report_October_2013.pdf"
+               title="Click to access report recommending spring target of 800 metric tons TP and 150 metric tons DRP">suggested
+                target</a>
+
         </div>
     </div>
 
@@ -525,7 +577,6 @@
         </div>
     </div>
 </div>
-
 </body>
 
 
