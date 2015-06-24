@@ -159,6 +159,15 @@
         $(function () {
 
                     rawData = loadData();
+
+                    var lastI = rawData[0][1].length - 1;
+                    var lastDate = rawData[0][1][lastI][0];
+                    var nextDate = new Date();
+                    nextDate.setDate(lastDate.getDate() + 7);
+                    var niceDate = $.datepicker.formatDate("MM d", lastDate);
+                    var niceDate2 = $.datepicker.formatDate("MM d", nextDate);
+                    alert(niceDate + ' ' + niceDate2);
+
                     var plotData = loadPlotData(rawData, 0, startDay);
 
 
