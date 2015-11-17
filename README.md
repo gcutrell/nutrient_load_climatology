@@ -13,6 +13,11 @@ an opportunity to incorporate additional features into the tool to improve its u
   - Alternate definitions of year (360-day, leap year handling alternatives)
   
   - Input specification - location, type
+
+  - control boundaries - percentiles, confidence intervals
   
-  Please contact Tad Slawecki (tslawecki@limno.com) if you have ideas ...
+  - "Functional boxplot" - https://en.wikipedia.org/wiki/Functional_boxplot
+
+Please contact Tad Slawecki (tslawecki@limno.com) if you have ideas ... or if you can point to a formal definition or term of art for the chart prodcut hear (climatograph? calimatology chart? ...?).
+
   
