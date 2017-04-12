@@ -15,15 +15,15 @@
     <link rel="StyleSheet" href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" type="text/css">
     <script src="http://code.highcharts.com/highcharts.js"></script>
 
-
-    <script src="data.js"></script>
+    <script src="data2.js"></script>
     <script src="climatology.js"></script>
 
 
     <script>
-
-        function loadData() {
-
+				var TpOutput = 0;				//Used to check if current TP cumulative loads have been written to html
+				var DrpOutput = 0;			//Used to check if current TP cumulative loads have been written to html
+				
+				function loadData() {
             var tp = new Array();
             var drp = new Array();
 
@@ -34,13 +34,13 @@
             }
             return [["TP", tp], ["DRP", drp]];
         }
-
-        function loadPlotData(data, dataset, startDay) {
-
-            var aYear = grabAYear(data[dataset][1], 1, startDay, 2015, true);
-
+			
+        
+				function loadPlotData(data, dataset, startDay,lastDate) {
+						var currentYear = lastDate.getFullYear();
+            var aYear = grabAYear(data[dataset][1], 1, startDay, currentYear, true);
             var years = [];
-            for (y = 2000; y < 2015; y++) {
+            for (y = 2000; y < currentYear; y++) {
                 years.push(grabAYear(data[dataset][1], 1, startDay, y, true))
             }
 
@@ -59,12 +59,21 @@
             var f4 = [];
             var f5 = [];
             var dMany = new Array(15);
-            for (y = 2000; y < 2015; y++) {
+            for (y = 2000; y < currentYear; y++) {
                 dMany[y - 2000] = [];
             }
-            for (i = 0; i < 365; i++) {
+						
+						//Calculate Day of Year of most recent date
+						var timestmp = new Date().setFullYear(currentYear, 0, 1);
+						var yearFirstDay = Math.floor(timestmp / 86400000);
+						var today = Math.ceil((lastDate.getTime()) / 86400000);
+						var dayOfYear = today - yearFirstDay;
 
+						
+            for (i = 0; i < 365; i++) {
+								
                 date = Date.UTC(1970, 0, i + startDay);
+
                 d1.push([date, stats[4][i] - stats[3][i]]);
                 d2.push([date, stats[3][i] - stats[2][i]]);
                 d3.push([date, stats[2][i] - stats[1][i]]);
@@ -72,6 +81,16 @@
                 d5.push([date, stats[0][i]]);
                 if (i < aYear.length) {
                     d6.push([date, aYear[i]]);
+										if (Date.UTC(1970, 0, dayOfYear -1) == date && dataset == 0 && TpOutput == 0){ 
+											$('#currentTP').append($('<td>&nbsp;&nbsp;'+aYear[i].toFixed(1)+' metric tons</td>'));
+											$('#averageTP').append($('<td>&nbsp;&nbsp;('+((aYear[i]/stats[2][i])*100).toFixed(1)+'% of the 2000-'+(currentYear-1)+' average)</td>'))
+											TpOutput += 1;
+										}
+										if (Date.UTC(1970, 0, dayOfYear -1) == date && dataset == 1 && DrpOutput == 0){ 
+											$('#currentDRP').append($('<td>&nbsp;&nbsp;'+aYear[i].toFixed(1)+' metric tons</td>'));
+											$('#averageDRP').append($('<td>&nbsp;&nbsp;('+((aYear[i]/stats[2][i])*100).toFixed(1)+'% of the 2000-'+(currentYear-1)+' average)</td>'))
+											DrpOutput += 1;
+										}
                     if (i == aYear.length - 1) {
                         f1.push([date,aYear[i]]);
                         f2.push([date,aYear[i]]);
@@ -88,7 +107,7 @@
                     f5.push([date,f5[f5.length-1][1]+stats2[0][i]]);
                 }
                 d7.push([date, 860.0]);
-                for (y = 2000; y < 2015; y++) {
+                for (y = 2000; y < currentYear; y++) {
                     dMany[y - 2000].push([date, years[y - 2000][i]]);
                 }
             }
@@ -99,13 +118,13 @@
             result.push({type: "area", name: "mean", data: d3, color: '#D0D0D0', lineColor: '#808080'});
             result.push({type: "area", name: "25%ile", data: d4, color: '#F0F0F0'});
             result.push({type: "area", name: "min", data: d5, color: '#FFFFFF'});
-            result.push({type: "line", name: "2015", data: d6, color: '#004400', lineWidth: 3});
+            result.push({type: "line", name: currentYear, data: d6, color: '#004400', lineWidth: 3});
             result.push({
                 type: "line", name: "July 31 target", data: d7,
                 lineWidth: "1", visible: false, showInLegend: false, color: "#FF0000", dashStyle: "longdash"
             });
 
-            for (y = 2000; y < 2015; y++) {
+            for (y = 2000; y < currentYear-1; y++) {	
                 result.push({
                     type: "line",
                     name: y,
@@ -118,7 +137,8 @@
             }
             result.push({
                 type: "line",
-                name: "forecast",
+                name: "Min Forecast",
+								visible: false,
                 showInLegend: false,
                 data: f1,
                 color: '#888888',
@@ -127,7 +147,8 @@
             });
             result.push({
                 type: "line",
-                name: "forecast",
+                name: "Forecast",
+								visible: false,
                 showInLegend: false,
                 data: f3,
                 color: '#444400',
@@ -136,7 +157,8 @@
             });
             result.push({
                 type: "line",
-                name: "forecast",
+                name: "Max Forecast",
+								visible: false,
                 showInLegend: false,
                 data: f5,
                 color: '#888888',
@@ -152,6 +174,7 @@
         var lastYear = "none";
         var lastParameter = "Total Phosphorus";
         var offsetForTarget = 0;
+				var offsetForForecast = 0;
         var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         var rawData;
         var startDay = 60;
@@ -159,19 +182,32 @@
         $(function () {
 
                     rawData = loadData();
-
                     var lastI = rawData[0][1].length - 1;
-                    var lastDate = rawData[0][1][lastI][0];
-                    var nextDate = new Date();
-                    nextDate.setDate(lastDate.getDate() + 7);
+                    var lastDate = rawData[0][1][lastI][0]; 
+										var nextDate = new Date();
+										var nextUpdate = new Date();
+										nextUpdate.setTime(lastDate.getTime() + 7 * 86400000);
                     var niceDate = $.datepicker.formatDate("MM d", lastDate);
                     var niceDate2 = $.datepicker.formatDate("MM d", nextDate);
-                    alert(niceDate + ' ' + niceDate2);
-
-                    var plotData = loadPlotData(rawData, 0, startDay);
-
-
-                    var monthTickPositions = [];
+										
+										//Append years to yearly dropdown box
+										var currentYear = lastDate.getFullYear();
+										for (i = 2000; i <= currentYear-1; i++) {
+											$('#year').append($('<option>').text(i));
+										}
+										
+										//Write out planned next update (in a week) and the range of cumulative loads
+										$('#nextUpdate').append('<i> Data last updated '+$.datepicker.formatDate("MM dd", lastDate)+'; '+'next update planned for '+$.datepicker.formatDate("MM dd.", nextUpdate))+'</i>';
+                    var plotData = loadPlotData(rawData, 0, startDay,lastDate); 		//"0" represents TP and "1" is DRP
+										$('#currentYearRange').append($.datepicker.formatDate("MM dd yy", lastDate));
+                    
+										//Calculate Day of Year of most recent date
+										var timestmp = new Date().setFullYear(currentYear, 0, 1);
+										var yearFirstDay = Math.floor(timestmp / 86400000);
+										var today = Math.ceil((lastDate.getTime()) / 86400000);
+										var dayOfYear = today - yearFirstDay;
+										
+										var monthTickPositions = [];
                     for (i = 0; i < 6; i++) {
                         monthTickPositions.push(Date.UTC(1970, startMonth + i, 1))
                     }
@@ -240,20 +276,58 @@
                                         s = s + "<tr><td>Maximum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
 
                                         if (lastYear == "none") {
-                                            if (this.points.length > 5 + offsetForTarget)
-                                                s = s + "<tr><td><b>Current year: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
-                                        } else {
-                                            if (this.points.length > 6 + offsetForTarget) {
-                                                s = s + "<tr><td><b>Current year: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                            if (this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) >= date) { 
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt</b><br>";
+																						} else if(this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) < date && offsetForForecast > 0 && offsetForTarget == 0){
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																				} else {
+                                            if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
                                                 s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
-                                            } else {
+																						} 
+																						else if (offsetForTarget == 0 && offsetForForecast == 0){
                                                 s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
                                             }
+																						if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}else if (offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+                                                s = s + "<tr><td><b>"+ this.points[7].series.name +": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[8].series.name + ": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
                                         }
-                                        if (offsetForTarget > 0) {
-                                            s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+                                        if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                            s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																						}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																				}
+																			  if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																				}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																						
                                         }
-
                                         s = s + "</table>";
                                         return s;
                                     },
@@ -273,16 +347,18 @@
                                 series: plotData
                             }
                     );
-                    //plotData = loadPlotData(rawData, 1, startDay);
-//                    var chart2 = new Highcharts.Chart(Highcharts.merge(chart.options, {
-//                        chart: {
-//                            series: plotData,
-//                            visible: false
-//                        }
+                    
+										loadPlotData(rawData, 1, startDay,lastDate);		//Call to produce the current Dissolved Reactive Phosphorus tons
+                    
+										//var chart2 = new Highcharts.Chart(Highcharts.merge(chart.options, {
+                    //    chart: {
+                    //        series: plotData,
+                    //        visible: false
+                    //    }
+										//}));
 
 
-                    // Handle toggle of forecast
-
+                    // Handle toggle of target
                     $('#target').change(function () {
                         if (this.checked) {
                             chart.series[6].show();
@@ -295,30 +371,324 @@
                     })
 
                     // Handle toggle of forecast
-
                     $('#forecast').change(function () {
                         if (this.checked) {
                             chart.series[23].show();
                             chart.series[24].show();
                             chart.series[22].show();
+														offsetForForecast = 1;
                         }
                         else {
                             chart.series[23].hide();
                             chart.series[24].hide();
                             chart.series[22].hide();
+														offsetForForecast = 0;
                         }
                     })
 
                     // Handle switch between parameters
-
                     $('#display').selectmenu({
                         change: function (event, data) {
-                            //chart2.visible = true;
-                            chart.visible = false;
-                            alert(data.item.value)
+														if (data.item.value == 'Dissolved Reactive Phosphorus') {
+															plotData = loadPlotData(rawData, 1, startDay, lastDate);
+															chart = new Highcharts.Chart({
+																chart: {
+                                    type: 'area',
+                                    renderTo: 'container'
+                                },
 
-                        }
-                    });
+                                credits: {
+                                    enabled: false
+                                },
+
+                                subtitle: {
+                                    text: 'Cumulative Load from Maumee River to Western Lake Erie Basin'
+                                },
+                                title: {
+                                    text: ''
+                                },
+//                                subtitle: {
+//                                    text: '(March 1 to April 27, 2015)'
+//                                },
+                                xAxis: {
+                                    min: Date.UTC(1970, startMonth, 1),
+                                    max: Date.UTC(1970, startMonth + 5, 1),
+                                    tickPositions: monthTickPositions,
+                                    gridLineWidth: 1,
+
+                                    labels: {
+                                        formatter: function () {
+                                            if (this.isFirst) return null;
+                                            var date = new Date(this.value);
+                                            return date.toLocaleString("en-us", {month: "short"})
+                                        },
+                                        x: -80
+                                    }
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: 'Dissolved Reactive Phosphorus (metric tons)'
+                                    },
+                                    labels: {
+                                        formatter: function () {
+                                            return this.value;
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    useHTML: true,
+                                    formatter: function () {
+                                        var date = new Date(this.x);
+                                        var s = '<b>' + months[date.getMonth()] + ' ' + date.getDate() + '</b>';
+
+                                        s = s + "<br><br><table>";
+                                        var y = this.points[4].y;
+                                        s = s + "<tr><td>Minimum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[3].y;
+                                        s = s + "<tr><td>25th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[2].y;
+                                        s = s + "<tr><td>Average: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[1].y;
+                                        s = s + "<tr><td>75th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[0].y;
+                                        s = s + "<tr><td>Maximum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+
+                                        if (lastYear == "none") {
+                                            if (this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) >= date) { 
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt</b><br>";
+																						} else if(this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) < date && offsetForForecast > 0 && offsetForTarget == 0){
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																				} else {
+                                            if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						} 
+																						else if (offsetForTarget == 0 && offsetForForecast == 0){
+                                                s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                            }
+																						if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}else if (offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+                                                s = s + "<tr><td><b>"+ this.points[7].series.name +": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[8].series.name + ": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+                                        }
+                                        if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                            s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																						}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																				}
+																			  if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																				}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																						
+                                        }
+                                        s = s + "</table>";
+                                        return s;
+                                    },
+
+
+                                    shared: true
+                                },
+                                plotOptions: {
+                                    area: {
+                                        stacking: 'normal',
+                                        lineWidth: 1,
+                                        marker: {
+                                            lineWidth: 1
+                                        }
+                                    }
+                                },
+                                series: plotData
+															});
+															
+															//Check if the show target or show forecast has been previously checked.
+															if ($('#forecast').is(':checked')) {
+																chart.series[23].show();
+																chart.series[24].show();
+																chart.series[22].show();
+																offsetForForecast = 1;
+																console.log('true');
+															}
+															else {
+																chart.series[23].hide();
+																chart.series[24].hide();
+																chart.series[22].hide();
+																offsetForForecast = 0;
+															}
+															if ($('#target').is(':checked')) {
+																chart.series[6].show();
+																offsetForTarget = 1;
+															}
+															else {
+																chart.series[6].hide();
+																offsetForTarget = 0;
+															}
+														} else if(data.item.value == 'Total Phosphorus') {
+															chart.destroy();
+															plotData = loadPlotData(rawData, 0, startDay, lastDate);
+															chart = new Highcharts.Chart({
+																chart: {
+                                    type: 'area',
+                                    renderTo: 'container'
+                                },
+
+                                credits: {
+                                    enabled: false
+                                },
+
+                                subtitle: {
+                                    text: 'Cumulative Load from Maumee River to Western Lake Erie Basin'
+                                },
+                                title: {
+                                    text: ''
+                                },
+//                                subtitle: {
+//                                    text: '(March 1 to April 27, 2015)'
+//                                },
+                                xAxis: {
+                                    min: Date.UTC(1970, startMonth, 1),
+                                    max: Date.UTC(1970, startMonth + 5, 1),
+                                    tickPositions: monthTickPositions,
+                                    gridLineWidth: 1,
+
+                                    labels: {
+                                        formatter: function () {
+                                            if (this.isFirst) return null;
+                                            var date = new Date(this.value);
+                                            return date.toLocaleString("en-us", {month: "short"})
+                                        },
+                                        x: -80
+                                    }
+                                },
+                                yAxis: {
+                                    title: {
+                                        text: 'Total Phosphorus (metric tons)'
+                                    },
+                                    labels: {
+                                        formatter: function () {
+                                            return this.value;
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    useHTML: true,
+                                    formatter: function () {
+                                        var date = new Date(this.x);
+                                        var s = '<b>' + months[date.getMonth()] + ' ' + date.getDate() + '</b>';
+
+                                        s = s + "<br><br><table>";
+                                        var y = this.points[4].y;
+                                        s = s + "<tr><td>Minimum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[3].y;
+                                        s = s + "<tr><td>25th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[2].y;
+                                        s = s + "<tr><td>Average: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[1].y;
+                                        s = s + "<tr><td>75th percentile: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+                                        y += this.points[0].y;
+                                        s = s + "<tr><td>Maximum: <td style='text-align:right'>" + y.toFixed(3) + " mt<br>";
+
+                                        if (lastYear == "none") {
+                                            if (this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) >= date) { 
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt</b><br>";
+																						} else if(this.points.length >5 + offsetForTarget && Date.UTC(1970, 0, dayOfYear -1) < date && offsetForForecast > 0 && offsetForTarget == 0){
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																				} else {
+                                            if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                                s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						} 
+																						else if (offsetForTarget == 0 && offsetForForecast == 0){
+                                                s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                            }
+																						if (this.points.length > 6 + offsetForTarget && offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>"+currentYear+": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+                                                s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}else if (offsetForTarget == 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+                                                s = s + "<tr><td><b>"+ this.points[7].series.name +": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 1 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[8].series.name + ": <td style='text-align:right'>" + this.points[7 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																								s = s + "<tr><td><b>" + this.points[5].series.name + ": <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+																						else if (offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																								s = s + "<tr><td><b>" + this.points[6].series.name + ": <td style='text-align:right'>" + this.points[5 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																								s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[4 + offsetForTarget].y.toFixed(3) + " mt<br>";
+																						}
+                                        }
+                                        if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+                                            s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																						}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast == 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																				}
+																			  if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) >= date) {
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[6].y.toFixed(3) + " mt<br>";
+																				}else if (lastYear == "none" && offsetForTarget > 0 && offsetForForecast > 0 && Date.UTC(1970, 0, dayOfYear -1) < date) {
+																						s = s + "<tr><td><b>" + this.points[6 + offsetForTarget].series.name + ": <td style='text-align:right'>" + this.points[6 + offsetForTarget].y.toFixed(3) + " mt</b><br>";
+																						s = s + "<tr><td>Suggested target: <td style='text-align:right'>" + this.points[5].y.toFixed(3) + " mt<br>";
+																						
+                                        }
+                                        s = s + "</table>";
+                                        return s;
+                                    },
+
+
+                                    shared: true
+                                },
+                                plotOptions: {
+                                    area: {
+                                        stacking: 'normal',
+                                        lineWidth: 1,
+                                        marker: {
+                                            lineWidth: 1
+                                        }
+                                    }
+                                },
+                                series: plotData
+															});
+														}
+														
+												}
+										});
+															
+
 
                     // Handle switch of single year being displayed
 
@@ -339,13 +709,13 @@
                                 }
                             }
                     );
-
+										
                 }
         )
-
-
+			
     </script>
-
+	
+		
     <style>
 
         fieldset {
@@ -390,7 +760,7 @@
                 </div>
                 <div id="site-name-wrapper" class="clearfix">
                     <div id="site-name"><a href="/" title="Home">Great Lakes Observing System </a></div>
-                    <div class="tool-title"><br/><br/>Maumee River Nutrient Tracker <font size=-1><i>(5/11/2015
+                    <div class="tool-title"><br/><br/>Maumee River Nutrient Tracker <font size=-1><i>(3/29/2017
                         DRAFT)</i></font></div>
                 </div>
                 <!-- /site-name-wrapper -->
@@ -406,19 +776,19 @@
             <table width="900">
                 <tr>
                     <td width="600">
-                        <p><b>Cumulative Loads</b> March 1 to May 18, 2015:<br>
+                        <p id="currentYearRange"><b>Cumulative Loads</b> March 1 to </p>
                         <table>
                             <tr>
                                 <td>&nbsp;&nbsp;Total Phosphorus:
-                                <td>&nbsp;&nbsp;616.4 metric tons
-                                <td>&nbsp;&nbsp;(21.5% below 2000-2014 average) <br>
+                                <td id="currentTP"></td>
+                                <td id="averageTP"></td> <br>
                             <tr>
                                 <td>&nbsp;&nbsp;Dissolved Reactive Phosphorus:
-                                <td>&nbsp;&nbsp;126.3 metric tons
-                                <td>&nbsp;&nbsp;(18.6% below 2000-2014 average)
+                                <td id="currentDRP"></td>
+                                <td id="averageDRP"></td> <br>
                         </table>
                         <br>
-                        <i>Data last updated May 26; next update planned for June 1.</i>
+                        <p id="nextUpdate"></p>
                         </p>
                     </td>
                     <td>
@@ -437,7 +807,7 @@
 
                             <select id="year" name="year">
                                 <option selected="selected" value="none">none</option>
-                                <option value="2000">2000</option>
+                             <!--   <option value="2000">2000</option>
                                 <option value="2001">2001</option>
                                 <option value="2002">2002</option>
                                 <option value="2003">2003</option>
@@ -452,6 +822,8 @@
                                 <option>2012</option>
                                 <option>2013</option>
                                 <option>2014</option>
+																<option>2015</option>
+																<option>2016</option>-->
                             </select>
                         </fieldset>
                     </td>
