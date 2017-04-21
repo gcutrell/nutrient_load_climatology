@@ -1,9 +1,8 @@
-
 /****************************/
-/* GLOS CSS                 */
+/* TribTool CSS                 */
 /****************************/
 
-/****updated 5/7/15 12:15pm */
+/* updated 4/12/17 K.Koch */
 
 h1,h2,h3,h4,h5,h6 {margin: 0 0 15px 0; line-height: 110%; padding-top: 0;}
 
@@ -20,11 +19,11 @@ a {color: #014e9c;text-decoration: none;}
 a:hover {text-decoration: none; color: #538522;}
 .clear {clear: both; font-size: 0.000em;}
 
-body {background: #fff url(body_bg.jpg) repeat-x 50% 0px; margin: 0 0 0 0;}
+body {background: #fff 0px; margin: 0 0 0 0;}
 /* Candara Font Stack */
 body #page {margin: 5 auto;padding: 0;font: 14px/1.3 Candara, Calibri, Segoe, "Segoe UI", Optima, Arial, sans-serif;}
-#page {background:  url(bathymetry_body.jpg) no-repeat 50% 0px;z-index}
-#page-inner {background:  url(bathymetry_header.jpg) no-repeat 50% 0px; }
+#page {}
+#page-inner {}
 
 #page-content {margin: 0 0 0 40px;}
 
@@ -40,12 +39,18 @@ html #header-top-wrapper {background: none;}
 
 	/* Logo */
 
-	#logo { width: 100%;height: 97px; position: absolute; top: 3px;}
+	#logo {
+	width: 100%;
+	height: 97px;
+	position: absolute;
+	top: 22px;
+	left: 12px;
+}
 	#logo img {vertical-align: top;}
 	
 	/* Site Name */
-	#site-name {width: 422px; float: left;margin: 0 0 0 115px; height: 60px; background: url(glos-title.png) no-repeat; text-indent: -9999px;}
-	#site-name a {display: block; height:60px; background: url(glos-title.png) no-repeat;}
+	#site-name {width: 422px; float: left;margin: 0 0 0 115px; height: 60px; text-indent: -9999px;}
+	#site-name a {display: block; height:60px;}
 .tool-title {font-weight: bold; color: white; font-size: 24px; margin-left: 138px;}
 	
 	
@@ -54,19 +59,19 @@ html #header-top-wrapper {background: none;}
 /* ============================================================= */
 #footer-wrapper{}
 
-#footer-wrapper a {color: #fff;}
-#footer-wrapper a:focus, #footer-wrapper a:hover {color: #a5df6c;}
+#footer-wrapper a {color: #CCCCCC;}
+#footer-wrapper a:focus, #footer-wrapper a:hover {color: #9fb3c3;}
 #footer-wrapper .content {line-height: 1em;}
-#footer-wrapper {background: #0b58a7 url(footer-bg.png) repeat-x; color: #fff;}
-#footer {font-size: 12px!important;padding-top: 35px; position: relative; overflow: visible; margin-left: 8px;}
+#footer-wrapper {background: #262626; color: #fff;}
+#footer {font-size: 12px!important;padding-top: 15px; position: relative; overflow: visible; margin-left: 8px;}
 #footer-wrapper .content {line-height: 120%;}
 
 	/* Sticks footer to bottom of page on short pages */
 	html, body {height: 100%;}
 	#page  {min-height: 100%;}
 	#page-inner {overflow: auto; padding-bottom: 210px; /*padding == footer height*/}
-	#footer-wrapper {height: 210px;/*height == footer height*/ position: relative; margin-top: -210px;/*margin == -footer height*/ clear: both; background: #0b58a7 url(footer-bg.png) repeat-x; color: #fff;}
-.footerbox {
+	#footer-wrapper {height: 300px;}
+}
         background: url(footerbox_trans.png) no-repeat;
         font: 11px/1.3 Candara,Calibri,Segoe,"Segoe UI",Optima,Arial,sans-serif;
         color:#014E9C;
